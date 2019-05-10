@@ -321,6 +321,9 @@ create_optics(Name) ->
             {error, cannot_alloc_optics}
     end.
 
+-spec get_lens(foil:key()) -> {ok, erl_optics_lens:lens()} |
+                              {error, {atom(), foil:key()}} |
+                              {error, atom()}.
 get_lens(Key) ->
     case foil:lookup(?NS, Key) of
         {ok, Ptr} ->
@@ -331,16 +334,20 @@ get_lens(Key) ->
             {error, Reason}
     end.
 
+
 get_optics() ->
     foil:lookup(?NS, optics).
 
+
+-spec get_lenses(module()) -> {ok, list(erl_optics_lens:lens())} |
+                              {atom(), atom(), module()}.
 get_lenses(Module) ->
     case erlang:function_exported(Module, get_optics_lenses, 0) of
         true ->
-            try {ok, Lenses} = Module:get_optics_lenses()
+            try
+                {ok, Lenses} = Module:get_optics_lenses()
             catch
-                Error:Reason ->
-                    {Error, Reason, Module}
+                Error:Reason -> {Error, Reason, Module}
             end;
         false->
             []
@@ -354,6 +361,7 @@ check_error(Val, {Lenses, Errors}) ->
             {Lenses, [{Module, Reason}| Errors]}
     end.
 
+-spec make_lenses_list() -> list(erl_optics_lens:lens()).
 make_lenses_list() ->
     Lst = lists:flatten([get_lenses(Module) || {Module, _} <- code:all_loaded()]),
     {Lenses, Errors} = lists:foldl(fun check_error/2, {[], []}, Lst),
